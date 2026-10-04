@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Program.cs の読み方</title>
+<style>
+  :root {
+    --ink: var(--foreground, #202124);
+    --muted: var(--muted-foreground, #666a73);
+    --line: var(--border, #d8dbe2);
+    --surface: var(--card, #f7f7f8);
+    --accent-color: var(--accent, #3468d4);
+    --soft: color-mix(in srgb, var(--accent-color) 10%, transparent);
+    --soft-strong: color-mix(in srgb, var(--accent-color) 18%, transparent);
+    --code-bg: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    color: var(--ink);
+    line-height: 1.72;
+  }
+  button, code { font: inherit; }
+  .lesson {
+    width: min(920px, calc(100vw - 32px));
+    padding: 8px 0 40px;
+  }
+  header { padding: 12px 0 24px; border-bottom: 1px solid var(--line); }
+  .eyebrow { margin: 0 0 6px; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+  h1 { margin: 0; font-size: clamp(26px, 4vw, 40px); line-height: 1.25; letter-spacing: -.025em; }
+  .lead { max-width: 720px; margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+  .answer {
+    margin-top: 20px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    font-size: 16px;
+  }
+  .answer strong { color: var(--ink); }
+  section { padding: 30px 0; border-bottom: 1px solid var(--line); }
+  h2 { margin: 0 0 8px; font-size: 22px; line-height: 1.35; letter-spacing: -.015em; }
+  h3 { margin: 0 0 7px; font-size: 16px; }
+  .intro { margin: 0 0 20px; color: var(--muted); max-width: 720px; }
+
+  /* Mental model */
+  .two-times {
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr;
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 18px;
+  }
+  .time-box { border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .time-box .when { color: var(--muted); font-size: 12px; }
+  .time-box b { display: block; margin: 4px 0 8px; font-size: 18px; }
+  .time-box p { margin: 0; font-size: 14px; }
+  .time-box.request { background: var(--soft); border-color: color-mix(in srgb, var(--accent-color) 40%, var(--line)); }
+  .repeat { align-self: center; text-align: center; color: var(--muted); font-size: 22px; }
+  .key-point { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* Code map */
+  .code-map { display: grid; grid-template-columns: 238px minmax(0,1fr); gap: 18px; align-items: start; }
+  .code-nav { display: grid; gap: 7px; position: sticky; top: 12px; }
+  .code-nav button {
+    width: 100%; min-height: 52px; padding: 9px 11px;
+    border: 1px solid var(--line); border-radius: 8px;
+    color: var(--ink); background: transparent; text-align: left; cursor: pointer;
+  }
+  .code-nav button:hover { background: var(--surface); }
+  .code-nav button[aria-selected="true"] { background: var(--soft); border-color: var(--accent-color); }
+  .code-nav small { display: block; color: var(--muted); margin-top: 1px; }
+  .code-nav .n { display: inline-block; width: 23px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .detail { min-height: 420px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .detail-top { padding: 18px 20px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .detail-top .phase { color: var(--muted); font-size: 12px; }
+  .detail-top h3 { margin: 3px 0 0; font-size: 20px; }
+  .detail-body { padding: 20px; }
+  pre {
+    margin: 0 0 18px; padding: 14px 16px; overflow-x: auto;
+    border-radius: 8px; background: var(--code-bg); border: 1px solid var(--line);
+    font: 13px/1.7 Consolas, "Cascadia Code", monospace;
+    white-space: pre-wrap;
+  }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: .94em; }
+  .plain { font-size: 17px; margin: 0 0 18px; }
+  .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fact { padding: 13px 14px; border-top: 1px solid var(--line); }
+  .fact .label { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; letter-spacing: .05em; }
+  .fact p { margin: 0; font-size: 13px; }
+  .not-yet { color: var(--muted); }
+
+  /* Request flow */
+  .journey { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 0; }
+  .journey li { display: grid; grid-template-columns: 40px 150px 1fr; gap: 12px; align-items: start; position: relative; padding: 0 0 22px; }
+  .journey li:not(:last-child)::after { content:""; position:absolute; left:19px; top:38px; bottom:3px; width:1px; background:var(--line); }
+  .step { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; display:grid; place-items:center; font-weight: 650; background: var(--surface); }
+  .journey li:nth-child(4) .step { border-color: var(--accent-color); background: var(--soft); }
+  .journey b { padding-top: 6px; }
+  .journey p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* Vocabulary */
+  .terms { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 24px; }
+  .term { padding: 14px 0; border-top: 1px solid var(--line); }
+  .term dt { font-weight: 650; }
+  .term dd { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* Experiments */
+  .experiments { counter-reset: exp; display: grid; gap: 12px; margin-top: 18px; }
+  .experiment { counter-increment: exp; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .experiment h3::before { content: counter(exp) ". "; color: var(--muted); }
+  .experiment p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .experiment .expect { margin-top: 10px; color: var(--ink); }
+  footer { padding-top: 24px; color: var(--muted); font-size: 12px; }
+
+  @media (max-width: 720px) {
+    .two-times { grid-template-columns: 1fr; }
+    .repeat { transform: rotate(90deg); }
+    .code-map { grid-template-columns: 1fr; }
+    .code-nav { position: static; grid-template-columns: 1fr 1fr; }
+    .facts, .terms { grid-template-columns: 1fr; }
+    .journey li { grid-template-columns: 40px 1fr; }
+    .journey li > div:last-child { grid-column: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<main class="lesson">
+  <header>
+    <p class="eyebrow">ASP.NET CORE / 最初の1ファイル</p>
+    <h1>Program.cs は、サーバーの<br>「準備」と「受付」を書く場所</h1>
+    <p class="lead">最初から各関数を暗記しなくていい。まず、コードが<strong>いつ実行されるか</strong>を2つに分けると読めるようになる。</p>
+    <div class="answer"><strong>このファイルの仕事は3つだけ。</strong> 機能を準備する → URLと処理を結ぶ → サーバーを起動して待つ。</div>
+  </header>
+
+  <section aria-labelledby="model-title">
+    <h2 id="model-title">最初に覚えるのは、2つの時間</h2>
+    <p class="intro">同じ Program.cs に書いてあっても、全部が同じタイミングで動くわけではない。</p>
+    <div class="two-times">
+      <article class="time-box">
+        <span class="when">アプリ起動時に1回</span>
+        <b>準備する時間</b>
+        <p><code>CreateBuilder</code>、<code>AddOpenApi</code>、<code>Build</code>、<code>Use...</code>、<code>Map...</code> が、サーバーの構成を作る。</p>
+      </article>
+      <div class="repeat" aria-hidden="true">→</div>
+      <article class="time-box request">
+        <span class="when">アクセスされるたびに何度でも</span>
+        <b>応答する時間</b>
+        <p><code>MapGet</code> に渡したラムダが動き、天気データを作ってブラウザへ返す。</p>
+      </article>
+    </div>
+    <p class="key-point">大事：<code>MapGet(...)</code> を書いた瞬間に天気データを作るわけではない。ここでは「このURLに来たら、この処理を呼ぶ」と登録している。</p>
+  </section>
+
+  <section aria-labelledby="map-title">
+    <h2 id="map-title">コードを4つの仕事に分ける</h2>
+    <p class="intro">左を上から順に押して読む。最初は太字の一文だけで十分。</p>
+    <div class="code-map">
+      <nav class="code-nav" aria-label="Program.cs の4区分">
+        <button type="button" aria-selected="true" data-panel="prepare"><span class="n">1</span> 準備する<small>1〜15行目</small></button>
+        <button type="button" aria-selected="false" data-panel="route"><span class="n">2</span> URLを登録する<small>17〜34行目</small></button>
+        <button type="button" aria-selected="false" data-panel="run"><span class="n">3</span> 待ち受ける<small>36行目</small></button>
+        <button type="button" aria-selected="false" data-panel="model"><span class="n">4</span> データの形を決める<small>38〜41行目</small></button>
+      </nav>
+
+      <article class="detail" aria-live="polite">
+        <div class="detail-top"><span class="phase" id="panelPhase">起動時に1回</span><h3 id="panelTitle">サーバーを動かす準備</h3></div>
+        <div class="detail-body">
+          <pre id="panelCode">var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddOpenApi();
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+app.UseHttpsRedirection();</pre>
+          <p class="plain" id="panelPlain"><strong>必要な道具と、リクエストの通り道を準備している。</strong></p>
+          <div class="facts">
+            <div class="fact"><span class="label">今していること</span><p id="panelNow"><code>CreateBuilder</code> が設定・ログ・サーバーの土台を用意し、<code>AddOpenApi</code> がOpenAPI機能を登録する。<code>Build</code> で設定を確定し、<code>UseHttpsRedirection</code> を通り道に追加する。</p></div>
+            <div class="fact"><span class="label">まだしていないこと</span><p class="not-yet" id="panelNot">まだポートで待ち受けていない。天気データも作っていない。</p></div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="journey-title">
+    <h2 id="journey-title">ブラウザでURLを開いた後の流れ</h2>
+    <p class="intro">ここからが「応答する時間」。1回アクセスされるたびに、この順で進む。</p>
+    <ol class="journey">
+      <li><span class="step">1</span><b>受け取る</b><div><code>Kestrel</code> がHTTPリクエストを受け取る。<p>例：GET /weatherforecast</p></div></li>
+      <li><span class="step">2</span><b>通り道を通る</b><div><code>UseHttpsRedirection</code> がHTTPならHTTPSへ案内する。<p>HTTPSなら、そのまま次へ進む。</p></div></li>
+      <li><span class="step">3</span><b>行き先を探す</b><div>登録済みの <code>MapGet("/weatherforecast", ...)</code> が見つかる。<p>HTTPメソッドとパスの両方で照合する。</p></div></li>
+      <li><span class="step">4</span><b>処理を実行する</b><div>ラムダが初めて動き、5件の <code>WeatherForecast</code> を作る。<p><code>Select</code> の処理は <code>ToArray()</code> で配列が必要になった時に実行される。</p></div></li>
+      <li><span class="step">5</span><b>返す</b><div>配列をJSONへ変換して、ブラウザへ返す。<p>配列を返したため、ASP.NET Core が <code>application/json</code> を選ぶ。</p></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="term-title">
+    <h2 id="term-title">このページで必要な用語は5つだけ</h2>
+    <dl class="terms">
+      <div class="term"><dt>Kestrel</dt><dd>ASP.NET Coreに組み込まれたHTTPサーバー。外から来たリクエストを最初に受け取る。</dd></div>
+      <div class="term"><dt>DIコンテナ</dt><dd>必要な部品を登録し、必要になった場所へ渡す仕組み。今は「部品置き場」くらいでいい。</dd></div>
+      <div class="term"><dt>ミドルウェア</dt><dd>リクエストがエンドポイントへ届く前後に通る共通処理。HTTPSへの転送など。</dd></div>
+      <div class="term"><dt>エンドポイント</dt><dd>「HTTPメソッド + URL」と、実行する処理を結びつけた受付口。</dd></div>
+      <div class="term"><dt>JSON</dt><dd>データを文字として送る形式。C#の配列やオブジェクトから自動変換される。</dd></div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="try-title">
+    <h2 id="try-title">理解を確認する3つの実験</h2>
+    <p class="intro">読むより、1か所変えて結果を見るほうが早い。変更前にコミットする必要はまだない。</p>
+    <div class="experiments">
+      <article class="experiment"><h3><code>app.Run()</code> を一時的にコメントアウト</h3><p>実行すると、待ち受ける処理がないためアプリがすぐ終了する。</p><p class="expect"><strong>分かること：</strong><code>Run</code> がサーバーを起動し、終了まで待っている。</p></article>
+      <article class="experiment"><h3><code>MapGet</code> の戻り値を文字列にする</h3><p>新しいURLで <code>() =&gt; "hello"</code> を返す。ブラウザではJSONではなく文字列になる。</p><p class="expect"><strong>分かること：</strong>戻り値の型を見て、ASP.NET Core がレスポンス形式を選んでいる。</p></article>
+      <article class="experiment"><h3>同じURLへ2回アクセス</h3><p>天気の数値やSummaryが変わるか見る。</p><p class="expect"><strong>分かること：</strong>ラムダは起動時ではなく、リクエストのたびに実行されている。</p></article>
+    </div>
+  </section>
+
+  <footer>対象：.NET 10 の <code>dotnet new webapi</code> が生成した Minimal API テンプレート。行番号は現在の LearnApi01/Program.cs に対応。</footer>
+</main>
+
+<script>
+const panels = {
+  prepare: {
+    phase: '起動時に1回',
+    title: 'サーバーを動かす準備',
+    code: `var builder = WebApplication.CreateBuilder(args);\nbuilder.Services.AddOpenApi();\nvar app = builder.Build();\n\nif (app.Environment.IsDevelopment())\n{\n    app.MapOpenApi();\n}\napp.UseHttpsRedirection();`,
+    plain: '<strong>必要な道具と、リクエストの通り道を準備している。</strong>',
+    now: '<code>CreateBuilder</code> が設定・ログ・サーバーの土台を用意し、<code>AddOpenApi</code> がOpenAPI機能を登録する。<code>Build</code> で設定を確定し、<code>UseHttpsRedirection</code> を通り道に追加する。',
+    not: 'まだポートで待ち受けていない。天気データも作っていない。'
+  },
+  route: {
+    phase: '起動時に1回：処理を登録',
+    title: 'URLと、後で動かす処理を結ぶ',
+    code: `app.MapGet("/weatherforecast", () =>\n{\n    var forecast = Enumerable.Range(1, 5)\n        .Select(index => new WeatherForecast(...))\n        .ToArray();\n    return forecast;\n})\n.WithName("GetWeatherForecast");`,
+    plain: '<strong>GET /weatherforecast が来た時に呼ぶ処理を登録している。</strong>',
+    now: 'ルーティング表へ「GET + /weatherforecast → このラムダ」を追加する。<code>WithName</code> はこの受付口に名前を付ける。',
+    not: '登録時点ではラムダの中は動かない。天気データはまだ0件。'
+  },
+  run: {
+    phase: '起動時に1回：ここから待機',
+    title: 'サーバーを起動して待ち受ける',
+    code: `app.Run();`,
+    plain: '<strong>ここで初めてHTTPサーバーが動き、アクセスを待つ。</strong>',
+    now: 'Kestrelを起動し、設定されたポートでリクエストを待つ。アプリは停止命令が来るまで終了しない。',
+    not: 'この行より後ろへ順番に進み続けるわけではない。停止するまでここで待つ。'
+  },
+  model: {
+    phase: 'コンパイル時に決まる型',
+    title: '返すデータの形を定義する',
+    code: `record WeatherForecast(\n    DateOnly Date,\n    int TemperatureC,\n    string? Summary)\n{\n    public int TemperatureF\n        => 32 + (int)(TemperatureC / 0.5556);\n}`,
+    plain: '<strong>天気1件が持つデータを定義している。</strong>',
+    now: '<code>Date</code>、<code>TemperatureC</code>、<code>Summary</code> を持つ型を宣言する。<code>TemperatureF</code> は読まれるたびに摂氏から計算する。',
+    not: 'ここに書いただけでは天気データは作られない。<code>new WeatherForecast(...)</code> で初めて1件できる。'
+  }
+};
+
+const buttons = document.querySelectorAll('.code-nav button');
+const phase = document.getElementById('panelPhase');
+const title = document.getElementById('panelTitle');
+const code = document.getElementById('panelCode');
+const plain = document.getElementById('panelPlain');
+const now = document.getElementById('panelNow');
+const notYet = document.getElementById('panelNot');
+
+buttons.forEach(button => button.addEventListener('click', () => {
+  buttons.forEach(b => b.setAttribute('aria-selected', 'false'));
+  button.setAttribute('aria-selected', 'true');
+  const panel = panels[button.dataset.panel];
+  phase.textContent = panel.phase;
+  title.textContent = panel.title;
+  code.textContent = panel.code;
+  plain.innerHTML = panel.plain;
+  now.innerHTML = panel.now;
+  notYet.innerHTML = panel.not;
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<div class="wrap">
+
+  <header>
+    <h1>Program.cs を読む</h1>
+    <p class="sub">「何をしてるか」を <b>3つのフェーズ</b> と <b>1リクエストの旅</b> で見る。各行の細かい中身は開いて読む。</p>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section>
+    <h2><span class="num">1</span>全体は3フェーズ</h2>
+    <div class="phases">
+      <div class="phase">
+        <b>① 登録</b><span>〜 Build()</span>
+        <p>サービスをカタログに並べる</p>
+      </div>
+      <div class="arw">→</div>
+      <div class="phase">
+        <b>② 組み立て</b><span>Build() 〜 Run()</span>
+        <p>リクエストの通り道を組む</p>
+      </div>
+      <div class="arw">→</div>
+      <div class="phase hi">
+        <b>③ 実行</b><span>Run() 〜</span>
+        <p>ポートを開いて待つ</p>
+      </div>
+    </div>
+    <p class="note">①②は起動した瞬間に終わる。リクエストを処理するのは <b>③だけ</b>。「登録した時点では実行されていない」がここ。</p>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section>
+    <h2><span class="num">2</span>1リクエストの旅</h2>
+    <ol class="flow">
+      <li><span class="tag">外</span>ブラウザが接続してくる</li>
+      <li><span class="tag">サーバー</span><b>Kestrel</b> が受け取る</li>
+      <li><span class="tag">準備</span><b>HttpContext</b> を作る（メソッド・パス・ヘッダ・ボディ）</li>
+      <li><span class="tag">関所</span><b>UseHttpsRedirection</b> → httpなら <b>307</b> を返して<b>ここで終わり</b></li>
+      <li><span class="tag">振り分け</span>ルーティング → URLに合うハンドラを探す</li>
+      <li><span class="tag">実行</span>ラムダが走る（天気データを作ってるのは<b>ここ</b>）</li>
+      <li><span class="tag">整形</span>戻り値の型を見て JSON に変換、Content-Type を付ける</li>
+      <li><span class="tag">外</span>レスポンスを書き込んでブラウザへ</li>
+    </ol>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section>
+    <h2><span class="num">3</span>各行がしていること</h2>
+
+    <div class="card">
+      <div class="chead"><span class="ln">1</span><code>var builder = WebApplication.CreateBuilder(args);</code></div>
+      <p class="one">アプリの土台を作る。<b>1行に見えて6つくらいやってる。</b></p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li><code>args</code>（コマンドライン引数）を<b>設定として載せる</b></li>
+          <li>設定を読む（優先順位: 環境変数 &gt; appsettings.json）</li>
+          <li>ログの仕組みを組み立てる</li>
+          <li><b>DIコンテナ</b>を新しく作る（まだ空っぽの対応表）</li>
+          <li><b>Kestrel</b>（HTTPサーバー本体）の設定を用意する</li>
+          <li class="warn">まだポートは開かない</li>
+        </ul>
+        <p class="note">返ってくるのは「設定を溜めておく箱」。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">5</span><code>builder.Services.AddOpenApi();</code> <span class="mk add">Add</span></div>
+      <p class="one">対応表に<b>1行足すだけ</b>。まだ何も作ってない。</p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li><code>builder.Services</code> の中身は<b>「型 → 実装」の対応表（辞書）</b></li>
+          <li>そこに「OpenAPIを作る係はこれを使う」と1行登録する</li>
+          <li><b>インスタンスは作らない。</b>誰かに要求されたときに初めて作る（遅延生成）</li>
+        </ul>
+        <p class="note">これが <b>DI</b> の正体。自分で <code>new</code> する代わりに「要るなら作って」と予約しておく。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">7</span><code>var app = builder.Build();</code></div>
+      <p class="one">表を確定させて、実際に組み立てる。<b>ここが一番大きい。</b></p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>登録された対応表から <b>ServiceProvider</b> ができる</li>
+          <li>ミドルウェアを積むための器ができる</li>
+          <li>Kestrel が構成される（<b>まだ起動しない</b>）</li>
+          <li class="warn">ここで対応表は<b>書き換えられなくなる</b></li>
+        </ul>
+        <p class="note">だから <b>Add は Build より前、Use / Map は Build より後</b>。順番が決まってるのはこれが理由。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">10</span><code>if (app.Environment.IsDevelopment())</code></div>
+      <p class="one">環境名を比べて <b>bool を返すだけ</b>。魔法は無い。</p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>環境名は <code>ASPNETCORE_ENVIRONMENT</code> 環境変数から来る</li>
+          <li><code>dotnet run</code> のときは <code>Properties/launchSettings.json</code> が設定している</li>
+          <li>だから「開発中だけ実行される分岐」になる。11〜13行目を消しても本番には影響しない</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">12</span><code>app.MapOpenApi();</code> <span class="mk map">Map</span></div>
+      <p class="one"><b>自分のAPIの説明書を返す</b>エンドポイントを1本足す。</p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>既定のURLは <code>/openapi/v1.json</code></li>
+          <li>リクエストが来たら、<b>登録済みのエンドポイントを走査して</b>パス・メソッド・返り値の型を集める</li>
+          <li>情報源は <code>MapGet</code> で登録した内容</li>
+        </ul>
+        <p class="note">実行時にルーティング表を読むので、<b>書く順番は関係ない</b>。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">15</span><code>app.UseHttpsRedirection();</code> <span class="mk use">Use</span></div>
+      <p class="one">通り道に<b>関所を1枚</b>挿す。httpなら https へ飛ばす。</p>
+      <details>
+        <summary>やっていることは地味</summary>
+        <pre>httpか?
+ ├─ Yes → Location を付けて <b>307</b> を返す（次の関所へは行かない）
+ └─ No  → 何もせず次へ通す</pre>
+        <p class="note"><b>体感できる。</b><code>http://localhost:5xxx</code> を開くと勝手に <code>https://localhost:7xxx</code> に飛ぶ。あれがこの行。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">22</span><code>app.MapGet("/weatherforecast", () =&gt; { … })</code> <span class="mk map">Map</span></div>
+      <p class="one">URLと処理を結ぶ。<b>登録するだけで、まだ実行しない。</b></p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>ルーティング表に「GET + /weatherforecast → このラムダ」を1行登録</li>
+          <li>ラムダは<b>リクエストが来たときだけ</b>走る</li>
+          <li>24行目の LINQ はその場で走らない。<code>.ToArray()</code> の瞬間に走る（<b>遅延評価</b>）</li>
+          <li>つまり1リクエストごとに作り直している</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">34</span><code>.WithName("GetWeatherForecast")</code></div>
+      <p class="one">エンドポイントに<b>名前を付ける</b>だけ。</p>
+      <details>
+        <summary>名前は何に使う?</summary>
+        <ul>
+          <li>① 別の場所から <b>URLを逆引き</b>するため</li>
+          <li>② OpenAPI の <b>operationId</b> になる（説明書に載る）</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">36</span><code>app.Run();</code></div>
+      <p class="one"><b>ここで初めてポートを開いて待ち受ける。</b></p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>ホストを開始して、停止シグナルを待つ状態で<b>ブロックする</b></li>
+          <li><code>Ctrl + C</code> で止まるのは、ここでシグナルを拾って終了処理をしているから</li>
+          <li class="warn"><code>Ctrl + C</code> しないとプロセスが残る → <b>さっきの MSB3026</b></li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">38</span><code>record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)</code></div>
+      <p class="one"><b>データの型を定義している。</b>変換はしていない。</p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li>コンパイラが裏で作る: コンストラクタ / 読み取り専用プロパティ / <code>Equals</code> / <code>GetHashCode</code> / <code>ToString</code> / <code>Deconstruct</code></li>
+          <li><code>string?</code> の <code>?</code> は<b>null許容参照型</b>。実行時ではなく<b>コンパイル時</b>に警告を出す仕組み</li>
+        </ul>
+        <p class="warn">38行目 = <b>型の定義</b>、40行目 = <b>その型の計算プロパティ</b>。ここがノートで混ざっていたところ。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="chead"><span class="ln">40</span><code>public int TemperatureF =&gt; 32 + (int)(TemperatureC / 0.5556);</code></div>
+      <p class="one">摂氏→華氏の変換は<b>ここ</b>。<b>式形式プロパティ</b>。</p>
+      <details>
+        <summary>中で起きていること</summary>
+        <ul>
+          <li><code>=&gt;</code> は「get だけのプロパティ」。値を保持せず<b>呼ばれるたびに毎回計算</b>する</li>
+          <li>get があるので <b>JSONにも出力される</b>（返ってきたJSONに <code>temperatureF</code> があるか見てみる）</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section>
+    <h2><span class="num">4</span>おせっかいの正体（戻り値の扱い）</h2>
+    <p class="sub">ラムダが何を返すかで、フレームワークの扱いが変わる。</p>
+    <table>
+      <thead><tr><th>返した型</th><th>フレームワークがすること</th></tr></thead>
+      <tbody>
+        <tr><td><code>string</code></td><td>そのまま <code>text/plain</code></td></tr>
+        <tr><td>オブジェクト / 配列</td><td><b>JSONに変換</b>、<code>application/json</code> <span class="muted">← forecast はこれ</span></td></tr>
+        <tr><td><code>IResult</code>（<code>Results.Ok()</code> など）</td><td>自分で制御。ステータスコードも指定できる</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section>
+    <h2><span class="num">5</span>Add / Use / Map の3種類</h2>
+    <p class="sub">「Add というメソッド」があるわけじゃない。<b>接頭辞のグループ</b>。</p>
+    <table>
+      <thead><tr><th>グループ</th><th>何をしてるか</th><th>このファイルでは</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mk add">Add</span></td><td><b>サービス登録</b>（DIコンテナに登録）</td><td><code>AddOpenApi()</code> 5行目</td></tr>
+        <tr><td><span class="mk use">Use</span></td><td><b>通り道に挟む</b>（全部のリクエストが通る）</td><td><code>UseHttpsRedirection()</code> 15行目</td></tr>
+        <tr><td><span class="mk map">Map</span></td><td><b>エンドポイント</b>（URLと処理を結ぶ）</td><td><code>MapOpenApi()</code> / <code>MapGet()</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note"><b>2つしかないのは、このテンプレートが最小構成だから。</b>コントローラー方式なら <code>AddControllers()</code> が並び、認証を足すと <code>AddAuthentication()</code> / <code>UseAuthentication()</code> / <code>UseAuthorization()</code> が増える。<b>Add/Use は後から増えていくもの。</b></p>
+    <div class="split">
+      <div><span class="mk add">Add</span> は <code>builder.Services</code> に生えている <span class="muted">= 触ってるのは DIコンテナ</span></div>
+      <div><span class="mk use">Use</span> / <span class="mk map">Map</span> は <code>app</code> に生えている <span class="muted">= 触ってるのは通り道</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section>
+    <h2><span class="num">6</span>「具体的」は5分で確かめられる</h2>
+    <ol class="check">
+      <li><code>http://localhost:5xxx/weatherforecast</code> を開く <span class="muted">→ httpsに飛ぶ = 15行目</span></li>
+      <li><code>/openapi/v1.json</code> を開く <span class="muted">→ 説明書が出る = 12行目</span></li>
+      <li><b>F12 → Network</b> で 307 と <code>Content-Type: application/json</code> を見る</li>
+      <li>返ってきたJSONに <code>temperatureF</code> があるか確認 <span class="muted">→ 40行目</span></li>
+      <li>36行目の <code>app.Run();</code> をコメントアウトして実行 <span class="muted">→ 一瞬で終わる</span></li>
+    </ol>
+    <p class="note">5番が一番効く。<b>動かない状態を作ると、その行が何をしていたか分かる。</b></p>
+  </section>
+
+</div>
+
+<style>
+  .wrap {
+    width: 780px;
+    color: var(--foreground, #e8e8e8);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .wrap *, .wrap *::before, .wrap *::after { box-sizing: border-box; }
+
+  header { margin: 0 0 4px; }
+  h1 { font-size: 19px; margin: 0 0 3px; font-weight: 650; letter-spacing: .01em; }
+  h2 {
+    font-size: 13.5px; margin: 0 0 10px; font-weight: 650;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sub, .note, .muted { color: var(--muted-foreground, #9a9a9a); }
+  .sub { font-size: 12px; margin: 0; }
+  .note { font-size: 12px; margin: 8px 0 0; }
+  .muted { font-size: 11.5px; }
+
+  section {
+    border-top: 1px solid var(--border, #333);
+    padding: 16px 0 6px;
+    margin-top: 14px;
+  }
+  section:first-of-type { border-top: none; margin-top: 8px; }
+
+  .num {
+    flex: 0 0 auto;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 600;
+    background: color-mix(in srgb, var(--accent, #6b8afd) 26%, transparent);
+    color: var(--foreground, #e8e8e8);
+  }
+
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+  code {
+    background: color-mix(in srgb, var(--foreground, #888) 8%, transparent);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: transparent;
+    border: 1px solid var(--border, #333);
+    border-left: 3px solid color-mix(in srgb, var(--accent, #6b8afd) 55%, transparent);
+    border-radius: 7px;
+    padding: 9px 12px; margin: 8px 0 0;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  pre b { color: var(--foreground, #e8e8e8); }
+
+  /* ---- phases ---- */
+  .phases { display: flex; align-items: stretch; gap: 6px; }
+  .phase {
+    flex: 1 1 0; min-width: 0;
+    border: 1px solid var(--border, #333);
+    border-top: 3px solid color-mix(in srgb, var(--accent, #6b8afd) 30%, transparent);
+    border-radius: 9px; padding: 9px 11px;
+  }
+  .phase.hi { border-top-color: var(--accent, #6b8afd); }
+  .phase b { font-size: 12.5px; }
+  .phase span { display: block; font-size: 10.5px; color: var(--muted-foreground, #9a9a9a); margin-top: 1px; }
+  .phase p { margin: 6px 0 0; font-size: 11.5px; color: var(--muted-foreground, #9a9a9a); }
+  .arw { align-self: center; color: var(--muted-foreground, #9a9a9a); font-size: 13px; }
+
+  /* ---- flow ---- */
+  .flow { list-style: none; margin: 0; padding: 0 0 0 0; }
+  .flow li {
+    position: relative;
+    padding: 6px 0 6px 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--border, #333) 70%, transparent);
+    display: flex; align-items: baseline; gap: 9px;
+  }
+  .flow li:last-child { border-bottom: none; }
+  .flow li::before {
+    content: "↓"; color: var(--muted-foreground, #9a9a9a);
+    position: absolute; left: -14px; top: 6px; font-size: 11px;
+  }
+  .flow li:first-child::before { content: ""; }
+  .tag {
+    flex: 0 0 58px;
+    font-size: 10.5px; color: var(--muted-foreground, #9a9a9a);
+    text-align: right;
+  }
+
+  /* ---- cards ---- */
+  .card {
+    border: 1px solid var(--border, #333);
+    border-radius: 9px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .chead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chead code { background: none; padding: 0; font-size: 12px; }
+  .ln {
+    flex: 0 0 auto;
+    font-size: 10.5px; font-weight: 600;
+    min-width: 22px; text-align: center;
+    padding: 1px 5px; border-radius: 5px;
+    border: 1px solid var(--border, #333);
+    color: var(--muted-foreground, #9a9a9a);
+  }
+  .one { margin: 6px 0 0; font-size: 12.5px; }
+  .warn {
+    color: var(--foreground, #e8e8e8);
+    background: color-mix(in srgb, var(--accent, #6b8afd) 14%, transparent);
+    border-left: 3px solid var(--accent, #6b8afd);
+    padding: 6px 10px; border-radius: 6px; margin: 8px 0 0;
+    font-size: 12px;
+  }
+  details { margin-top: 8px; }
+  summary {
+    cursor: pointer; font-size: 11.5px;
+    color: var(--muted-foreground, #9a9a9a);
+    user-select: none;
+  }
+  summary:hover { color: var(--foreground, #e8e8e8); }
+  details ul { margin: 8px 0 0; padding-left: 18px; }
+  details li { margin: 3px 0; font-size: 12px; }
+  details .warn { font-size: 12px; }
+
+  /* ---- markers ---- */
+  .mk {
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    padding: 1px 6px; border-radius: 20px;
+    border: 1px solid currentColor;
+  }
+  .mk.add { color: color-mix(in srgb, var(--accent, #6b8afd) 85%, var(--foreground, #fff)); }
+  .mk.use { color: color-mix(in srgb, var(--accent, #6b8afd) 55%, var(--muted-foreground, #999)); }
+  .mk.map { color: var(--muted-foreground, #9a9a9a); }
+
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td {
+    text-align: left; padding: 7px 9px;
+    border-bottom: 1px solid var(--border, #333);
+    vertical-align: top;
+  }
+  th { font-weight: 600; font-size: 11.5px; color: var(--muted-foreground, #9a9a9a); }
+
+  .split { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .split > div {
+    flex: 1 1 300px;
+    border: 1px solid var(--border, #333);
+    border-radius: 8px; padding: 8px 11px; font-size: 12px;
+  }
+
+  /* ---- checklist ---- */
+  .check { list-style: none; margin: 0; padding: 0; counter-reset: c; }
+  .check li {
+    counter-increment: c;
+    position: relative; padding: 5px 0 5px 30px;
+    font-size: 12.5px;
+  }
+  .check li::before {
+    content: counter(c);
+    position: absolute; left: 0; top: 5px;
+    width: 19px; height: 19px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 10.5px; font-weight: 600;
+    border: 1px solid var(--border, #333);
+    color: var(--muted-foreground, #9a9a9a);
+  }
+</style>

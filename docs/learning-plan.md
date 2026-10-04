@@ -129,7 +129,10 @@ Done when（縮小版）:
 - 旧: VS Community 2022（`C:\Program Files\...\2022\Community`）は残置。使わない。
 - .NET SDK: 10.0.401 / 9.0.314。
 - **作業場所: `D:\learning\work\`** にプロジェクトを作る。1プロジェクト1フォルダ。
-- 学習ログ: `D:\learning\notes\`。
+- 学習ログ: **Notion** に書く（`D:\learning\notes\` は使わない）。
+  ページ: https://app.notion.com/p/3e8554f0f76e802eb542e007eb89097c
+  親: データベース（`data_source_id: 3e7554f0-f76e-8037-a80f-000b6a07db28`）。**タイトルを必ず入れる。**
+  旧メモ: https://app.notion.com/p/3e7554f0f76e8062a3d7e41295f40516 （Program.cs の読み）
 
 ### 入れ方の記録（再インストール用）
 
@@ -138,6 +141,29 @@ Done when（縮小版）:
 ```powershell
 winget install --id Microsoft.VisualStudio.Community --override "--passive --wait --installPath D:\VS2026 --add Microsoft.VisualStudio.Workload.NetWeb --add Microsoft.VisualStudio.Workload.ManagedDesktop --includeRecommended"
 ```
+
+---
+
+## 完了した週（2026-09-26 土 夜 → 09-27 日）
+
+**達成:**
+
+- `D:\learning\work\LearnApi01` に Minimal API を1本作成。`/weatherforecast` と `/employees` が動く
+- `record` / `List<T>` / LINQ（`Where`・`OrderBy`）/ ラムダ / 遅延評価 を自分で書いた
+- 環境（Development / Production）で挙動が変わることを実際に確認
+- `WithName` が OpenAPI の `operationId` になるのを確認
+- 学習ログを Notion に記録
+
+**つまずいた点（再発防止）:**
+
+- **MSB3026**: 実行中の exe は Windows がロックする。`dotnet run` のプロセスを `Ctrl + C` で止めてからビルド。`bin` / `obj` の削除は不要
+- **exe 直起動**: `launchSettings.json` が読まれず `Production` になる。→ `IsDevelopment()` が false → `/openapi/v1.json` が404
+- **LINQ は定義しただけでは実行されない**（遅延評価）。「回す・数える・変換する・返す」が実行のトリガー
+
+**次にやること:**
+
+1. `async/await` と `HttpClient`（外を叩く側）
+2. そのあと設計（DI・責務分離・エラーの設計）
 
 ---
 
@@ -150,6 +176,7 @@ winget install --id Microsoft.VisualStudio.Community --override "--passive --wai
 | 2026-09-24 | 文法とネットワークを分けず、1つの題材で同時に学ぶ | 文法が目的を持つと定着する。Web API が両方の題材になる |
 | 2026-09-24 深夜 | VS Community 2026 を導入（`D:\VS2026`、NetWeb + ManagedDesktop） | ローカル管理者で UAC 昇格が可能だったため |
 | 2026-09-26 | 週の範囲を縮小。叩く側（HttpClient / async）は次回に回す | 使えたのが土曜の夜と日曜だけだった |
+| 2026-09-27 | 学習ログは Notion に書く（`notes/` は使わない） | 本人がNotionで管理したいため |
 
 ## 学習ログ
 
