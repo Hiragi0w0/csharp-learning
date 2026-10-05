@@ -158,4 +158,5 @@ work/261005/
 
 ## 参考にしたサイト
 
--
+- https://learn.microsoft.com/ja-jp/dotnet/core/tools/dotnet-new-sdk-templates
+- 
