@@ -1,3 +1,5 @@
+using Class;
+
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
@@ -43,5 +45,3 @@ app.MapGet("/error", () =>
 });
 
 app.Run();
-
-public record Item(int id, string Name, int Price);

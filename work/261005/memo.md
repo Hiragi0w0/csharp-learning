@@ -159,4 +159,7 @@ work/261005/
 ## 参考にしたサイト
 
 - https://learn.microsoft.com/ja-jp/dotnet/core/tools/dotnet-new-sdk-templates
+- https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient
+- https://learn.microsoft.com/ja-jp/dotnet/api/system.net.http.json.httpcontentjsonextensions.readfromjsonasync?view=net-11.0-pp
+- https://qiita.com/RikiLog/items/934cdb05e8c37c9cb5f1
 - 
