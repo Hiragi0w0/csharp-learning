@@ -1,12 +1,13 @@
-﻿using Class;
+using Class;
 
 var client = new ItemApiClient();
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
 try
 {
 	// GET /items
 	Console.WriteLine("GET /items");
-	var items = await client.GetAllItems();
+	var items = await client.GetAllItems(cts.Token);
 	if (items is not null)
 	{
 		int size = items.Count();
@@ -25,10 +26,11 @@ try
 	{
 		Console.WriteLine("Please Input ID: ");
 		input = Console.ReadLine();
+		if (input is null) return;
 	}
 	id = int.Parse(input);
 
-	var item = await client.GetItem(id);
+	var item = await client.GetItem(id, cts.Token);
 	if (item is not null)
 	{
 		Console.WriteLine($"{item.ToString()}, {item.name}, {(item.price).ToString()}");
@@ -42,10 +44,11 @@ try
 	{
 		Console.WriteLine("Please Input ms: ");
 		input = Console.ReadLine();
+		if (input is null) return;
 	}
 	ms = int.Parse(input);
 
-	var resultSlow = await client.GetSlow(ms);
+	var resultSlow = await client.GetSlow(ms, cts.Token);
 	if (resultSlow is not null)
 	{
 		Console.WriteLine($"{resultSlow}");
@@ -54,7 +57,7 @@ try
 
 	// GET /error
 	Console.WriteLine("GET /error");
-	var resultError = await client.GetError();
+	var resultError = await client.GetError(cts.Token);
 	Console.WriteLine($"{(int)resultError}");
 }
 catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -68,6 +71,10 @@ catch (HttpRequestException ex) when ((ex.StatusCode is not null) && ((int)ex.St
 catch (HttpRequestException ex) when (ex.StatusCode is null)
 {
 	Console.WriteLine("サーバーに接続できません。");
+}
+catch (OperationCanceledException) when (cts.IsCancellationRequested)
+{
+	Console.WriteLine("タイムアウトしました。");
 }
 catch (Exception ex)
 {

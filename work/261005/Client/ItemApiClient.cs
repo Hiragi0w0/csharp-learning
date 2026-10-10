@@ -10,31 +10,29 @@ public class ItemApiClient
 	{
 		BaseAddress = new("http://localhost:5037")
 	};
-	private readonly CancellationToken cancellationToken = new CancellationToken();
 
-	public async Task<List<Item>?> GetAllItems()
+	public async Task<List<Item>?> GetAllItems(CancellationToken cancellationToken = default)
 	{
 		// Jsonで取得
 		return await client.GetFromJsonAsync<List<Item>>("/items", cancellationToken);
 	}
 
-	public async Task<Item?> GetItem(int id)
+	public async Task<Item?> GetItem(int id, CancellationToken cancellationToken = default)
 	{
 		// Jsonで取得
 		return await client.GetFromJsonAsync<Item>($"/items/{id}", cancellationToken);
 	}
 
-	public async Task<object?> GetSlow(int ms)
+	public async Task<object?> GetSlow(int ms, CancellationToken cancellationToken = default)
 	{
 		// Jsonで取得
 		return await client.GetFromJsonAsync<object>($"slow?ms={ms}", cancellationToken);
 	}
 
-	public async Task<HttpStatusCode> GetError()
+	public async Task<HttpStatusCode> GetError(CancellationToken cancellationToken = default)
 	{
 		// Jsonで取得
 		using var response = await client.GetAsync("/error", cancellationToken);
-		response.EnsureSuccessStatusCode();
 		return response.StatusCode;
 	}
 }

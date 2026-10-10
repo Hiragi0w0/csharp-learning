@@ -32,7 +32,7 @@ app.MapGet("/slow", async (int ms) =>
 {
 	if ((ms < 0) || (ms >= 10000))
 	{
-		return Results.BadRequest(new { message = "ŠÔ‚Í0ˆÈã10000–¢–‚Åw’è‚µ‚Ä‚­‚¾‚³‚¢B" });
+		return Results.BadRequest(new { message = "æ™‚é–“ã¯0ä»¥ä¸Š10000æœªæº€ã§æŒ‡å®šã—ã¦ãã ã•ã„ã€‚" });
 	}
 
 	await Task.Delay(ms);
