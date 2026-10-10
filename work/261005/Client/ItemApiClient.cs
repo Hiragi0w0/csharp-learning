@@ -17,4 +17,24 @@ public class ItemApiClient
 		// Jsonで取得
 		return await client.GetFromJsonAsync<List<Item>>("/items", cancellationToken);
 	}
+
+	public async Task<Item?> GetItem(int id)
+	{
+		// Jsonで取得
+		return await client.GetFromJsonAsync<Item>($"/items/{id}", cancellationToken);
+	}
+
+	public async Task<object?> GetSlow(int ms)
+	{
+		// Jsonで取得
+		return await client.GetFromJsonAsync<object>($"slow?ms={ms}", cancellationToken);
+	}
+
+	public async Task<HttpStatusCode> GetError()
+	{
+		// Jsonで取得
+		using var response = await client.GetAsync("/error", cancellationToken);
+		response.EnsureSuccessStatusCode();
+		return response.StatusCode;
+	}
 }
